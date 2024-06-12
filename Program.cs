@@ -10,10 +10,14 @@ class Program
 
     public static void Main(string[] args)
     {
-        System.Console.WriteLine("Enter Tag UID:");
+        System.Console.WriteLine("Enter the NTAG213 UID:");
+        System.Console.WriteLine("First 3 hex values of address 0x00 and all 4 hex values of address 0x01");
+        System.Console.WriteLine("Example:");
+        System.Console.WriteLine("0x00: FF 01 23 45");
+        System.Console.WriteLine("0x01: 67 89 0A BC");
+        System.Console.WriteLine("UID: FF012367890ABC");
 
-        while (_uid.Length != 7)
-        {
+        do {
             string? str = Console.ReadLine();
             if (str == null | !IsHex(str))
             {
@@ -22,7 +26,7 @@ class Program
 
             if (str.Length != 14)
             {
-                System.Console.WriteLine("String not long enough:");
+                System.Console.WriteLine("UID should be 14 chars (7 hex values) long.");
                 str = System.Console.ReadLine();
             }
             else
@@ -30,6 +34,8 @@ class Program
                 _uid = StringToByteArray(str);
             }
         }
+        while (_uid.Length != 7);
+        
 
 
         while (_charid < 01 || _charid > 80)
