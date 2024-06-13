@@ -4,15 +4,27 @@ class Program
 {
 
     private static byte[] _uid = [];
-    private static ushort _charid = (ushort)00;
+    private static ushort _id = ushort.MinValue;
     private static byte[] _keys = [];
     private static byte[] _pwd = [];
 
     public static void Main(string[] args)
     {
-        System.Console.WriteLine("Enter Tag UID:");
+        HandleArguments(args);
 
-        while (_uid.Length != 7)
+        if (args != null && args.Length != 0)
+        {
+            return;
+        }
+
+        System.Console.WriteLine("Enter the NTAG213 UID:");
+        System.Console.WriteLine("First 3 hex values of address 0x00 and all 4 hex values of address 0x01");
+        System.Console.WriteLine("Example:");
+        System.Console.WriteLine("0x00: FF 01 23 45");
+        System.Console.WriteLine("0x01: 67 89 0A BC");
+        System.Console.WriteLine("UID: FF012367890ABC");
+
+        do
         {
             string? str = Console.ReadLine();
             if (str == null | !IsHex(str))
@@ -22,7 +34,7 @@ class Program
 
             if (str.Length != 14)
             {
-                System.Console.WriteLine("String not long enough:");
+                System.Console.WriteLine("UID should be 14 chars (7 hex values) long.");
                 str = System.Console.ReadLine();
             }
             else
@@ -30,18 +42,15 @@ class Program
                 _uid = StringToByteArray(str);
             }
         }
+        while (_uid.Length != 7);
 
 
-        while (_charid < 01 || _charid > 80)
+        do
         {
-            System.Console.WriteLine("Enter Character ID you wish to generate:");
-
-            for (int i = 0; i < Character.Characters.Count; i++)
-            {
-                System.Console.WriteLine(Character.Characters[i].Id.ToString() + ": " + Character.Characters[i].Name.ToString());
-            }
-            _charid = ushort.Parse(System.Console.ReadLine());
+            System.Console.WriteLine("Enter the character or vehicle ID you wish to generate:");
+            _id = ushort.Parse(System.Console.ReadLine());
         }
+        while (_id == ushort.MinValue);
 
         static byte[] StringToByteArray(string hex)
         {
@@ -51,18 +60,92 @@ class Program
                             .ToArray();
         }
 
-        _keys = LegoTag.EncrypCharactertId(_uid, _charid);
         _pwd = LegoTag.GenerateCardPassword(_uid);
-        PrintResult(_keys, _pwd);
+        if (_id.ToString().Length < 4)
+        {
+            _keys = LegoTag.EncryptCharacterId(_uid, _id);
+            PrintCharacterResult(_keys, _pwd);
+        }
+        if (_id.ToString().Length == 4)
+        {
+            _keys = LegoTag.EncryptVehicleId(_id);
+            PrintVehicleResult(_keys, _pwd);
+        }
     }
 
-    private static void PrintResult(byte[] keys, byte[] pwd)
+    private static void HandleArguments(string[] args)
     {
-        string name = getCharacterById(_charid);
+        if (args != null)
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "-h":
+                    case "--help":
+                        PrintHelp();
+                        break;
+                    case "-c":
+                    case "--list-characters":
+                        PrintCharacters();
+                        break;
+                    case "-v":
+                    case "--list-vehicles":
+                        PrintVehicles();
+                        break;
+                    default:
+                        PrintDefault();
+                        break;
+                }
+            }
+        }
+    }
+
+    private static void PrintDefault()
+    {
+        System.Console.WriteLine("The parameter you entered is not supported. Type -h or --help for more information.");
+    }
+
+    private static void PrintCharacters()
+    {
+        for (int i = 0; i < Character.Characters.Count; i++)
+        {
+            System.Console.WriteLine(Character.Characters[i].Id.ToString() + ": " + Character.Characters[i].Name.ToString());
+        }
+    }
+
+    private static void PrintVehicles()
+    {
+        for (int i = 0; i < Vehicle.Vehicles.Count; i++)
+        {
+            System.Console.WriteLine(Vehicle.Vehicles[i].Id.ToString() + ": " + Vehicle.Vehicles[i].Name.ToString());
+        }
+    }
+
+    private static void PrintHelp()
+    {
+        System.Console.WriteLine("Type -c or --list-characters to list all character options.");
+        System.Console.WriteLine("Type -v or --list-vehicles to list all vehicle options.");
+    }
+
+    private static void PrintVehicleResult(byte[] keys, byte[] pwd)
+    {
+        string name = getVehicleById(_id);
 
         System.Console.Clear();
         System.Console.WriteLine($"You've picked: {name}");
-        System.Console.WriteLine($"0x23: -- -- -- --");
+        System.Console.WriteLine($"0x24: {keys[0].ToString("X2")} {keys[1].ToString("X2")} {keys[2].ToString("X2")} {keys[3].ToString("X2")}");
+        System.Console.WriteLine($"0x25: -- -- -- --");
+        System.Console.WriteLine($"0x26: 00 01 00 00 (Token Type)");
+        System.Console.WriteLine($"0x2B: {pwd[0].ToString("X2")} {pwd[1].ToString("X2")} {pwd[2].ToString("X2")} {pwd[3].ToString("X2")} (PWD)");
+    }
+
+    private static void PrintCharacterResult(byte[] keys, byte[] pwd)
+    {
+        string name = getCharacterById(_id);
+
+        System.Console.Clear();
+        System.Console.WriteLine($"You've picked: {name}");
         System.Console.WriteLine($"0x24: {keys[0].ToString("X2")} {keys[1].ToString("X2")} {keys[2].ToString("X2")} {keys[3].ToString("X2")}");
         System.Console.WriteLine($"0x25: {keys[4].ToString("X2")} {keys[5].ToString("X2")} {keys[6].ToString("X2")} {keys[7].ToString("X2")}");
         System.Console.WriteLine($"0x26: -- -- -- -- (Token Type)");
@@ -72,6 +155,16 @@ class Program
     private static string getCharacterById(ushort id)
     {
         string result = Character.Characters.Find(x => x.Id == id).Name;
+        if (result == null)
+        {
+            return "null";
+        }
+        return result;
+    }
+
+    private static string getVehicleById(ushort id)
+    {
+        string result = Vehicle.Vehicles.Find(x => x.Id == id).Name;
         if (result == null)
         {
             return "null";
