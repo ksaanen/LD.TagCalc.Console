@@ -121,7 +121,7 @@ public static class LegoTag
     /// <param name="charid">The character ID.</param>
     /// <returns>A 8 bytes encrypted data to be stored in the 0x24 and 0x25 NFC page.</returns>
     /// <exception cref="ArgumentException">UID must be 7 bytes long.</exception>
-    public static byte[] EncrypCharactertId(byte[] uid, ushort charid)
+    public static byte[] EncryptCharacterId(byte[] uid, ushort charid)
     {
         if (uid is null || uid.Length is not 7)
         {
